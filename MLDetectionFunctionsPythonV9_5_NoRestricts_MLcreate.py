@@ -952,6 +952,154 @@ def AnalyseSignals(StartVals,EndVals,signal,signalCURVES,signalcurveave):
 
 
     return MainSignalDF, reducedsignalconc
+    
+    
+    
+def AnalyseSignalsCROPPED(StartVals,EndVals,signal):
+
+    column_names_main = ['SignalNumber','Startsig','Endsig''SignalLength','NoPeaks','NoDips','NoPeaksBeforeGlobal','NoPeaksAfterGlobal','NoDipsBeforeGlobal','NoDipsAfterGlobal','DipDepth','MedianPeakDifference','CCscore']
+    MainSignalDF = pd.DataFrame(columns = column_names_main, dtype=object)
+
+
+    numCOI = len(StartVals)
+    #extractedsignals = signalCURVES
+
+
+
+
+#MAX LENGTH FOR END CROP IS 300000
+
+
+
+
+
+    for K in range(numCOI):
+        print()
+        print()
+    
+
+
+        data = signal[int(StartVals[K]):int(EndVals[K]),1]
+    
+
+    
+        ultra_smooth_param = 10000 #CAN EDIT
+        smooth_param = 500 #CAN EDIT
+        peakdipheight = 50 #CAN EDIT
+    
+        start_crop = 0 #CAN EDIT  MUST BE SAME AS TEST ABOVE
+        end_crop = int(EndVals[K]) #CAN EDIT  MUST BE SAME AS TEST ABOVE
+    
+        #data from scan, ultra_smooth param, smooth param, height of peaks/dips
+        maxtabx, maxtaby, mintabx, mintaby, x, y_av, y_av_ultra_smooth = pipeline(data, 
+                                                                              ultra_smooth_param, 
+                                                                              smooth_param, 
+                                                                              peakdipheight, 
+                                                                              start_crop, 
+                                                                              end_crop)
+    
+    
+        DipIndex = np.where(mintaby == mintaby.min())
+        DipIndex = DipIndex[0]
+    
+    
+        DipBeforeValsMin = (mintaby[:int(DipIndex)])
+        DipAfterValsMin = (mintaby[int(DipIndex)+1:])
+        DipRemoveMin = np.concatenate((DipBeforeValsMin,DipAfterValsMin))
+    
+        DipBeforeValsMax = (maxtaby[:int(DipIndex)])
+        DipAfterValsMax = (maxtaby[int(DipIndex)+1:])
+        DipRemoveMax = np.concatenate((DipBeforeValsMax,DipAfterValsMax))
+    
+    #Av Peak Height is the difference between each peak and corresponding dip excluding the global dip
+    #So that it is not skewed
+    
+        maxtabxresize = maxtabx
+        mintabxresize = mintabx
+    
+        maxtabyresize = maxtaby
+        mintabyresize = mintaby
+    
+    #Currently only deleting 1 peak/dip
+    #Need it so it is more robust if difference is more than 1
+    
+        if len(maxtabx) > len(mintabx) :
+            #delete the longer of two down until equal length
+            #maxtabxresize = maxtabx
+            np.delete(maxtabx,len(maxtabx)-1) #np.delete(maxtabx,int(maxtabx[len(maxtabx)-1]))
+            maxtabxresize=np.resize(maxtabx,len(maxtabx)-1)
+        
+            np.delete(maxtaby,len(maxtabx)-1) #changed y to x   np.delete(maxtaby,int(maxtabx[len(maxtabx)-1]))
+            maxtabyresize=np.resize(maxtaby,len(maxtaby)-1)
+        
+        
+        if len(mintabx) > len(maxtabx) :
+        #delete the longer of two down until equal length
+            mintabxresize = mintabx
+        
+    
+        DipIndex = np.where(mintabyresize == mintabyresize.min())
+        DipIndex = DipIndex[0]
+    
+    
+        DipBeforeValsMin = (mintabyresize[:int(DipIndex)])
+        DipAfterValsMin = (mintabyresize[int(DipIndex)+1:])
+        DipRemoveMin = np.concatenate((DipBeforeValsMin,DipAfterValsMin))
+    
+        DipBeforeValsMax = (maxtabyresize[:int(DipIndex)])
+        DipAfterValsMax = (maxtabyresize[int(DipIndex)+1:])
+        DipRemoveMax = np.concatenate((DipBeforeValsMax,DipAfterValsMax))
+    
+        peakdip = np.stack((maxtabxresize,mintabxresize))
+    
+        PeaksBeforeMainDip = np.where(peakdip[0,:] <= mintabxresize[int(DipIndex)])
+    
+    
+    
+        print('Graph for Cropped Extracted Signal %s' %str(K+1))
+        print('Length of Signal %s is Approximately %ss (%s Frames)' %(str(K+1), (int(EndVals[K]) - int(StartVals[K]))/5000, int(EndVals[K]) - int(StartVals[K])))
+        print('Start:%s' %int(StartVals[K]/5000))
+        print('End:%s' %int(EndVals[K]/5000))
+        print('Number of Peaks in Signal %s is %s' %(str(K+1), str(len(maxtabx))))
+        print('Number of Dips in Signal %s is %s' %(str(K+1), str(len(mintabx))))
+    
+        print('Peaks Before Dip in Signal %s is %s' %(str(K+1), str(len(PeaksBeforeMainDip[0]))))
+        print('Dips Before Dip in Signal %s is %s' %(str(K+1), str(int(DipIndex))))
+    
+        print('Peaks After Dip in Signal %s is %s' %(str(K+1), str(len(mintaby) - len(PeaksBeforeMainDip[0]))))
+        print('Dips After Dip in Signal %s is %s' %(str(K+1), str(int(len(mintaby) - DipIndex - 1))))
+        print('Median Peak Height in Signal %s is %s' %(str(K+1), np.median((DipRemoveMax+10000)-(DipRemoveMin+10000))))
+        print('Dip Depth in Signal %s is %s' %(str(K+1), np.min(mintaby)))
+    
+        if np.min(mintaby) > -100:
+            print()
+            print('REMOVED DUE TO INCORRECT SIGNAL - DIP TOO SMALL')
+            print()
+    
+
+        if (int(EndVals[K]) - int(StartVals[K])) < 10000:
+            print('SIGNAL TOO SHORT')
+            continue
+
+        plot_signal_point_plus(maxtabx, maxtaby, mintabx, mintaby, x, y_av, y_av_ultra_smooth)
+    
+        if np.min(mintaby) > -500:
+            continue
+            
+        print(MainSignalDF)
+    
+        MainSignalDF.loc[K] = ['Signal' + str(K+1)] + [int(StartVals[K]/5000)] + [int(EndVals[K]/5000)] + [int(StartVals[K]/5000)] + [int(EndVals[K]/5000)] +[(int(EndVals[K]) - int(StartVals[K]))/5000]+[len(maxtabx)]+[len(mintabx)]+[str(len(PeaksBeforeMainDip[0]))]+[str(len(mintabx) - len(PeaksBeforeMainDip[0]))]+[int(DipIndex)]+[int(len(mintaby) - DipIndex - 1)]+[np.min(mintaby)]+[np.median((DipRemoveMax+10000) - (DipRemoveMin+10000))]
+
+    
+    #reducedsignal = signal[:,1] - signalCURVES
+    #reducedsignal = reducedsignal[reducedsignal != 0]
+    #newrowsig = np.arange(len(reducedsignal))
+    #reducedsignalconc = np.stack((newrowsig, reducedsignal), axis=0)
+    #reducedsignalconc = reducedsignalconc.T
+                    
+
+
+    return MainSignalDF#, reducedsignalconc
 
 
 
