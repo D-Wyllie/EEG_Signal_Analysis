@@ -162,6 +162,7 @@ def plot_signal_point(redmaxtabx, Reposredmaxtaby, redmintabx, redmintaby, x, y_
     plt.show()
     
 def plot_signal_point_plus(redmaxtabx, Reposredmaxtaby, redmintabx, redmintaby, x, y_av, y_av_ultra_smooth): #function plots the major min and max points from prev function with ultra smoothed as well
+    plt.rcParams['figure.figsize'] = [100, 50]
     plt.plot(x, y_av, '-', color='black')   # use the same x for plotting, y_av2 changed from series
     #plt.plot(x, y_av_ultra_smooth, '-', color='green')
     plt.scatter(redmaxtabx, Reposredmaxtaby, color='blue', s=250) # the x-coordinates used in maxtab need to be the same as those in plot
@@ -957,7 +958,7 @@ def AnalyseSignals(StartVals,EndVals,signal,signalCURVES,signalcurveave):
     
 def AnalyseSignalsCROPPED(StartVals,EndVals,signal):
 
-    column_names_main = ['SignalNumber','Startsig','Endsig''SignalLength','NoPeaks','NoDips','NoPeaksBeforeGlobal','NoPeaksAfterGlobal','NoDipsBeforeGlobal','NoDipsAfterGlobal','DipDepth','MedianPeakDifference','CCscore']
+    column_names_main = ['SignalNumber','Startsig','Endsig','SignalLength','NoPeaks','NoDips','NoPeaksBeforeGlobal','NoPeaksAfterGlobal','NoDipsBeforeGlobal','NoDipsAfterGlobal','DipDepth','MedianPeakDifference'] #ccscore
     MainSignalDF = pd.DataFrame(columns = column_names_main, dtype=object)
 
 
@@ -1088,7 +1089,7 @@ def AnalyseSignalsCROPPED(StartVals,EndVals,signal):
             
         print(MainSignalDF)
     
-        MainSignalDF.loc[K] = ['Signal' + str(K+1)] + [int(StartVals[K]/5000)] + [int(EndVals[K]/5000)] + [int(StartVals[K]/5000)] + [int(EndVals[K]/5000)] +[(int(EndVals[K]) - int(StartVals[K]))/5000]+[len(maxtabx)]+[len(mintabx)]+[str(len(PeaksBeforeMainDip[0]))]+[str(len(mintabx) - len(PeaksBeforeMainDip[0]))]+[int(DipIndex)]+[int(len(mintaby) - DipIndex - 1)]+[np.min(mintaby)]+[np.median((DipRemoveMax+10000) - (DipRemoveMin+10000))]
+        MainSignalDF.loc[K] = ['Signal' + str(K+1)] + [int(StartVals[K]/5000)] + [int(EndVals[K]/5000)] +[(int(EndVals[K]) - int(StartVals[K]))/5000]+[len(maxtabx)]+[len(mintabx)]+[str(len(PeaksBeforeMainDip[0]))]+[str(len(mintabx) - len(PeaksBeforeMainDip[0]))]+[int(DipIndex)]+[int(len(mintaby) - DipIndex - 1)]+[np.min(mintaby)]+[np.median((DipRemoveMax+10000) - (DipRemoveMin+10000))]
 
     
     #reducedsignal = signal[:,1] - signalCURVES
